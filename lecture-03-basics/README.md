@@ -21,6 +21,7 @@ cd lecture-03-basics
 | 4 | `04_event_loop.py` | 이벤트루프, 블로킹 | `python 04_event_loop.py` | `asyncio.sleep` 10개는 1초, `time.sleep` 10개는 10초. 심박 지연이 평소 1ms 인데 블로킹 때 2000ms |
 | 5 | `05_sync_async_matrix.py` | 동기/비동기 x 블로킹/논블로킹 | `python 05_sync_async_matrix.py` | 3초 / 1초(cpu 1.0초) / 1초 / 1초. polling 은 "끝났어?" 를 170만 번 묻느라 CPU 를 씀 |
 | 6 | `06_server.py`, `06_client.py` | FastAPI 에서 `def` vs `async def` | 터미널 A `python 06_server.py`, 터미널 B `python 06_client.py /async-blocking` (`/sync-blocking`, `/async-nonblocking` 도) | async-blocking 은 요청 5개가 2, 4, 6, 8, 10초에 끝나고 `/health` 도 10초 뒤에 응답. 나머지 둘은 2초에 끝나고 `/health` 는 0.5초에 응답 |
+| 7 | `07_bytecode.py` | 내 코드를 CPU 는 어떻게 알아들을까 (바이트코드, ISA) | `python 07_bytecode.py` | `c = a + b` 가 바이트코드 6줄로 쪼개짐. `uname -m` 이 arm64, `/bin/ls` 는 x86_64 와 arm64e 가 같이 든 universal binary. 반복문 합계 0.18초 vs 내장 `sum()` 0.04초 |
 
 ## 진행 팁
 
