@@ -1,0 +1,16 @@
+# S3 를 로컬에서 흉내 내는 LocalStack. boto3 가 실제 AWS 처럼 호출한다.
+#   docker compose up -d
+#   (끝나면) docker compose down
+services:
+  localstack:
+    image: localstack/localstack:4.0
+    container_name: lecture04-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4566/_localstack/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
