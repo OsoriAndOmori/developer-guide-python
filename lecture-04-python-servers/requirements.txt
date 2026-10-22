@@ -3,3 +3,4 @@ fastapi
 uvicorn
 httpx
 gunicorn
+aioboto3   # 진짜 비동기 boto3 (boto3 버전을 고정하므로 충돌에 주의)

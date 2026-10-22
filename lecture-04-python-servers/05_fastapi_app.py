@@ -5,6 +5,7 @@
   python load.py /report-async-blocking 3 8005   # async def + boto3 : 서버 전체가 멈춘다
   python load.py /report-def 3 8005              # def + boto3      : 스레드풀에서 돈다
   python load.py /report-to-thread 3 8005        # async def + to_thread
+  python load.py /report-aioboto3 200 8005       # async def + 진짜 비동기 boto3(aioboto3) : 스레드 없이 200개가 동시에
   python load.py /wait-async 200 8005            # 진짜 비동기 대기 : 200개가 0.5초에 끝남
   python load.py /wait-def 200 8005              # 스레드풀이 기다림  : 40개씩 줄을 서서 오래 걸림
   curl http://127.0.0.1:8005/whoami              # 어느 프로세스가 받았나 (워커를 여러 개 띄웠을 때)
@@ -16,12 +17,25 @@ import os
 import sys
 import time
 
+from contextlib import asynccontextmanager
+
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from common import read_report
+from common_async import create_client_context, read_report_async, register_latency
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app):
+    # 서버가 뜰 때 진짜 비동기 S3 클라이언트(aioboto3)를 한 번 만들어 두고 재사용한다
+    async with create_client_context() as s3:
+        register_latency(s3)
+        app.state.s3 = s3
+        yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/health")
@@ -64,6 +78,11 @@ def report_def():
 @app.get("/report-to-thread")
 async def report_to_thread():
     return {"bytes": await asyncio.to_thread(read_report)}  # async def 안에서 스레드로 넘기는 방법
+
+
+@app.get("/report-aioboto3")
+async def report_aioboto3(request: Request):
+    return {"bytes": await read_report_async(request.app.state.s3)}  # 진짜 비동기 클라이언트 : 스레드 없이 await
 
 
 if __name__ == "__main__":

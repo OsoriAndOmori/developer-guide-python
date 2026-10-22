@@ -9,7 +9,7 @@ LocalStack(S3)에 실제 `boto3` 로 요청을 보내는 서버를 만들어, �
 cd lecture-04-python-servers
 docker compose up -d                       # LocalStack(S3) 실행 (이미지를 처음 받을 때만 오래 걸림)
 python3 -m venv ../.venv && source ../.venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt            # aioboto3 가 boto3 버전을 바꿀 수 있다
 python 00_seed.py                          # 버킷을 만들고 읽을 파일(1MB)을 올림
 python common.py                           # read_report() 가 약 0.5초 걸리는지 확인
 # 끝나면: docker compose down
@@ -69,13 +69,14 @@ python 05_fastapi_app.py            # 포트 8005, 워커를 늘리려면 python
 python load.py /report-async-blocking 3 8005   # async def + boto3 : 막힘
 python load.py /report-def 3 8005              # def + boto3      : 스레드풀에서 돌아 안 막힘
 python load.py /report-to-thread 3 8005        # async def + to_thread
+python load.py /report-aioboto3 3 8005         # async def + 진짜 비동기 boto3(aioboto3)
 curl http://127.0.0.1:8005/whoami              # 워커가 여러 개면 PID 가 갈린다
 ```
 
 | 결과(이 컴퓨터) | |
 |---|---|
 | `/report-async-blocking` | 0.6, 1.1, 1.6초 + `/health` 도 1.6초 |
-| `/report-def`, `/report-to-thread` | 모두 0.5~0.6초, `/health` 는 0.3초 |
+| `/report-def`, `/report-to-thread`, `/report-aioboto3` | 모두 0.5~0.6초, `/health` 는 0.3초 |
 | 워커 2개, 요청 6번 | PID 가 둘로 갈림(4번 / 2번) |
 
 우리가 만든 조각과의 대응 : `04_mini_asgi_server.py` = **uvicorn**, `mini_framework.py` = **Starlette/FastAPI**,
@@ -92,7 +93,12 @@ curl http://127.0.0.1:8005/whoami              # 워커가 여러 개면 PID 가
 | FastAPI `async def` + `to_thread`(기본 스레드 수 제한), boto3 호출 | 40 | 1.8초 |
 | FastAPI `def` + 0.5초 대기 | 200 | 2.6초 (40개씩 줄 섬) |
 | FastAPI `async def` + `asyncio.sleep(0.5)` | 200 | 0.7초 |
+| FastAPI `def`, boto3 호출 | 200 | 3.3초 |
+| FastAPI `async def` + `to_thread`, boto3 호출 | 200 | 7.3초 (기본 스레드 수 약 18개 제한) |
+| FastAPI `async def` + **aioboto3**(진짜 비동기) | 200 | **1.7초** |
 
 - **기다리는 일이 많을수록** 스레드를 한 개씩 점유하는 방식은 스레드 수에서 막히고, 진짜 비동기 대기는 스레드 없이 모두 동시에 기다린다.
-- 그래도 boto3 같은 **동기 라이브러리를 쓰는 한** 비동기의 이점은 스레드(풀) 크기 안으로 줄어든다. 진짜 비동기 클라이언트(`aioboto3`)를 쓰거나, 동기 라이브러리 중심이면 `def` 로 쓰는 선택이 단순하다.
+- 그래도 boto3 같은 **동기 라이브러리를 쓰는 한** 비동기의 이점은 스레드(풀) 크기 안으로 줄어든다. 200건에서 `def`(스레드 40개)는 3.3초, `to_thread`(기본 스레드 수 제한)는 7.3초, **aioboto3 는 1.7초**였다.
+- 다만 aioboto3 도 공짜는 아니다. 요청마다 파이썬 쪽 처리(CPU)가 이벤트루프 스레드 하나에서 일어나서, 대기(0.5초)만 있던 `asyncio.sleep` 실험(0.7초)보다 느리다. 또 **boto3/botocore 버전을 고정**해서 다른 라이브러리와 충돌할 수 있다.
+- 동기 라이브러리 중심이고 동시 요청이 수십 개 수준이면 `def` 로 쓰는 선택이 가장 단순하다.
 - 숫자는 이 컴퓨터(로컬 LocalStack, 지연 0.5초 흉내) 기준이다. 환경마다 다르니 직접 돌려 본다.
