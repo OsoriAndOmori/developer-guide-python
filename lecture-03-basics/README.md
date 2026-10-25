@@ -22,6 +22,7 @@ cd lecture-03-basics
 | 5 | `05_sync_async_matrix.py` | 동기/비동기 x 블로킹/논블로킹 | `python 05_sync_async_matrix.py` | 3초 / 1초(cpu 1.0초) / 1초 / 1초. polling 은 "끝났어?" 를 170만 번 묻느라 CPU 를 씀 |
 | 6 | `06_server.py`, `06_client.py` | FastAPI 에서 `def` vs `async def` | 터미널 A `python 06_server.py`, 터미널 B `python 06_client.py /async-blocking` (`/sync-blocking`, `/async-nonblocking` 도) | async-blocking 은 요청 5개가 2, 4, 6, 8, 10초에 끝나고 `/health` 도 10초 뒤에 응답. 나머지 둘은 2초에 끝나고 `/health` 는 0.5초에 응답 |
 | 7 | `07_bytecode.py` | 내 코드를 CPU 는 어떻게 알아들을까 (바이트코드, ISA) | `python 07_bytecode.py` | `c = a + b` 가 바이트코드 6줄로 쪼개짐. `uname -m` 이 arm64, `/bin/ls` 는 x86_64 와 arm64e 가 같이 든 universal binary. 반복문 합계 0.18초 vs 내장 `sum()` 0.04초 |
+| 8 | `08_hangul_lang/hl.py`, `hello.업무` | 언어/컴파일러 만들기 (한글 키워드 → 바이트코드 → `.pyc`) | `cd 08_hangul_lang && python3.14 hl.py run hello.업무` → `python3.14 hl.py dis hello.pyc` | 파이썬 소스를 거치지 않고 `code` 객체를 직접 조립해 `.pyc` 로 굽는다. `python hello.pyc` 로 PVM 이 그대로 실행. `출력해`=print, `운영업무`=while, `결재/반려`=if/else, `퇴근`=break (3.14 전용) |
 
 ## 진행 팁
 
