@@ -4,6 +4,7 @@
   python 01_mini_wsgi_server.py single          # 스레드 1개 : 요청이 줄을 선다
   python 01_mini_wsgi_server.py threadpool 2    # 스레드풀 2개 : 동시에 2개씩
 다른 터미널에서 : python load.py /report 4      (요청 4개 + 0.3초 뒤 /health)
+                 python load.py "/sleep?seconds=2" 3   (boto3 없이 2초 기다리기만)
 
 같은 앱을 진짜 WSGI 서버로 돌려 보기 :
   gunicorn wsgi_app:app --threads 4 --bind 127.0.0.1:8001
