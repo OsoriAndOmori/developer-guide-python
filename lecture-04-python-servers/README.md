@@ -24,7 +24,7 @@ python common.py                           # read_report() 가 약 0.5초 걸리
 
 | 파일 | 설명 |
 |---|---|
-| `wsgi_app.py` | `app(environ, start_response)` 라는 WSGI 앱. `/report` 는 boto3 로 S3 를 읽고, `/sleep?seconds=2` 는 boto3 없이 기다리기만 함 |
+| `wsgi_app.py` | `app(environ, start_response)` 라는 WSGI 앱. `/report` 는 boto3 로 S3 를 읽고, `/sleep?seconds=1` 은 boto3 없이 그 초만큼 쉬고 응답 (`curl "http://127.0.0.1:8001/sleep?seconds=1"`) |
 | `01_mini_wsgi_server.py` | 소켓 + HTTP 파싱 + WSGI 앱 호출까지 직접 만든 서버. `single` 또는 `threadpool N` |
 
 ```bash
