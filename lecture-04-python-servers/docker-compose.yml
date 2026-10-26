@@ -1,5 +1,6 @@
 # S3 를 로컬에서 흉내 내는 LocalStack. boto3 가 실제 AWS 처럼 호출한다.
 #   docker compose up -d
+#   S3 웹 화면 : http://localhost:8081   (s3manager, 버킷과 객체를 눈으로 볼 수 있다)
 #   (끝나면) docker compose down
 services:
   localstack:
@@ -14,3 +15,19 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+
+  # S3 를 브라우저로 보는 웹 UI (LocalStack 에는 자체 화면이 없다)
+  s3-ui:
+    image: cloudlena/s3manager
+    container_name: lecture04-s3-ui
+    ports:
+      - "8081:8080"
+    environment:
+      - ENDPOINT=localstack:4566   # compose 안에서는 서비스 이름으로 접근한다
+      - REGION=ap-northeast-2
+      - ACCESS_KEY_ID=test
+      - SECRET_ACCESS_KEY=test
+      - USE_SSL=false
+    depends_on:
+      localstack:
+        condition: service_healthy

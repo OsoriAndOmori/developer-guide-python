@@ -7,11 +7,12 @@ LocalStack(S3)에 실제 `boto3` 로 요청을 보내는 서버를 만들어, �
 
 ```bash
 cd lecture-04-python-servers
-docker compose up -d                       # LocalStack(S3) 실행 (이미지를 처음 받을 때만 오래 걸림)
+docker compose up -d                       # LocalStack(S3) + S3 웹 화면 실행 (이미지를 처음 받을 때만 오래 걸림)
 python3 -m venv ../.venv && source ../.venv/bin/activate
 pip install -r requirements.txt            # aioboto3 가 boto3 버전을 바꿀 수 있다
 python 00_seed.py                          # 버킷을 만들고 읽을 파일(1MB)을 올림
 python common.py                           # read_report() 가 약 0.5초 걸리는지 확인
+# S3 웹 화면 : http://localhost:8081  (버킷 lecture04 > reports > report.bin 이 보이면 정상)
 # 끝나면: docker compose down
 ```
 
