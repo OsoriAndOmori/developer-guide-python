@@ -48,7 +48,7 @@ gunicorn wsgi_app:app --threads 4 --bind 127.0.0.1:8001   # 같은 앱을 진짜
 
 | 파일 | 설명 |
 |---|---|
-| `02_selector_loop.py` | `selectors` 로 스레드 1개가 여러 연결 처리. 콜백에서 boto3 를 부르면 루프가 막히는 것도 확인 |
+| `02_selector_loop.py` | `selectors` 로 스레드 1개가 여러 연결 처리. 콜백에서 boto3 를 부르거나 `/sleep?seconds=5` 로 쉬면 루프가 막히는 것도 확인 |
 | `03_asyncio_server.py` | asyncio 서버. `time.sleep` vs `asyncio.sleep`, boto3 직접 호출 vs `to_thread` |
 | `mini_framework.py`, `mini_app.py` | 미니 FastAPI(라우터 데코레이터 + 타입 힌트로 파라미터 주입)와 그 앱 |
 | `04_mini_asgi_server.py` | `app(scope, receive, send)` 를 호출하는 ASGI 서버(uvicorn 의 축소판) |
