@@ -34,6 +34,16 @@ python 01_mini_wsgi_server.py threadpool 2          python load.py /report 4
 gunicorn wsgi_app:app --threads 4 --bind 127.0.0.1:8001   # 같은 앱을 진짜 WSGI 서버로
 ```
 
+서버를 띄운 터미널에 **어느 스레드가 어떤 요청을 처리하는지** 로그가 찍힌다. 8001 포트가 이미 쓰이고 있으면 `PORT=8011 python 01_mini_wsgi_server.py threadpool 2` 처럼 바꿔서 띄운다.
+
+```
+[11:10:28.494] [worker_0 ] 시작 GET /sleep?seconds=2&n=2   (수락 후 0.00초 대기)
+[11:10:28.495] [worker_1 ] 시작 GET /sleep?seconds=2&n=1   (수락 후 0.00초 대기)
+[11:10:30.500] [worker_1 ] 끝   GET /sleep?seconds=2&n=1   (처리 2.01초)
+[11:10:30.500] [worker_0 ] 끝   GET /sleep?seconds=2&n=2   (처리 2.01초)
+[11:10:30.501] [worker_0 ] 시작 GET /health   (수락 후 1.70초 대기)   <- 스레드가 둘 다 바빠서 1.7초 기다렸다 시작
+```
+
 | 결과(이 컴퓨터) | |
 |---|---|
 | single, 요청 3개 | 0.6, 1.1, 1.6초에 차례로. `/health` 도 1.6초 |

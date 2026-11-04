@@ -10,13 +10,22 @@
   gunicorn wsgi_app:app --threads 4 --bind 127.0.0.1:8001
 """
 import io
+import os
 import socket
 import sys
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from wsgi_app import app
 
-HOST, PORT = "127.0.0.1", 8001
+HOST, PORT = "127.0.0.1", int(os.environ.get("PORT", 8001))  # 포트가 겹치면 PORT=8011 python 01_mini_wsgi_server.py ...
+
+
+def log(message):
+    """콘솔 로그 : 시각 + 지금 이 코드를 실행 중인 스레드 이름 + 내용"""
+    now = time.strftime("%H:%M:%S") + f".{int(time.time() * 1000) % 1000:03d}"
+    print(f"[{now}] [{threading.current_thread().name:<9}] {message}", flush=True)
 
 
 def parse_request(conn):
@@ -41,11 +50,14 @@ def parse_request(conn):
     return environ
 
 
-def handle(conn):
+def handle(conn, accepted_at):
     with conn:
         environ = parse_request(conn)
         if environ is None:
             return
+        request = f"{environ['REQUEST_METHOD']} {environ['PATH_INFO']}" + (f"?{environ['QUERY_STRING']}" if environ["QUERY_STRING"] else "")
+        started = time.perf_counter()
+        log(f"시작 {request}   (수락 후 {started - accepted_at:.2f}초 대기)")  # 스레드풀이 꽉 차 있었다면 여기가 길어진다
         captured = {}
 
         def start_response(status, headers):
@@ -54,10 +66,11 @@ def handle(conn):
         body = b"".join(app(environ, start_response))  # 앱 호출 : 여기서 블로킹 호출이 일어난다
         head = f"HTTP/1.1 {captured['status']}\r\n" + "".join(f"{k}: {v}\r\n" for k, v in captured["headers"])
         conn.sendall(head.encode() + b"Connection: close\r\n\r\n" + body)
+        log(f"끝   {request}   (처리 {time.perf_counter() - started:.2f}초)")
 
 
 def main(mode, workers):
-    pool = ThreadPoolExecutor(max_workers=workers) if mode == "threadpool" else None
+    pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="worker") if mode == "threadpool" else None
     with socket.socket() as server:
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind((HOST, PORT))
@@ -65,10 +78,11 @@ def main(mode, workers):
         print(f"[{mode}{f' x{workers}' if pool else ''}] http://{HOST}:{PORT}")
         while True:
             conn, _ = server.accept()
+            accepted_at = time.perf_counter()
             if pool:
-                pool.submit(handle, conn)  # 빈 스레드에 던지고 바로 다음 accept
+                pool.submit(handle, conn, accepted_at)  # 빈 스레드에 던지고 바로 다음 accept
             else:
-                handle(conn)               # 이 요청이 끝날 때까지 다음 accept 를 못 한다
+                handle(conn, accepted_at)               # 이 요청이 끝날 때까지 다음 accept 를 못 한다
 
 
 if __name__ == "__main__":

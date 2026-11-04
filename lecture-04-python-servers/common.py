@@ -15,7 +15,7 @@ from botocore.config import Config
 ENDPOINT = "http://localhost:4566"
 BUCKET = "lecture04"
 KEY = "reports/report.bin"  # 00_seed.py 가 올려 둔다
-SEED_MB = 1
+SEED_MB = 100
 NETWORK_LATENCY = 0.5       # 원격 호출의 왕복 지연을 흉내 낸다 (초)
 
 
