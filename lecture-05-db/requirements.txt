@@ -1,0 +1,6 @@
+sqlalchemy
+pymysql
+cryptography      # MySQL 8 의 기본 인증 방식(caching_sha2_password) 때문에 PyMySQL 에 필요
+fastapi
+uvicorn
+httpx

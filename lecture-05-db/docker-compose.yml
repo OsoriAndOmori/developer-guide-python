@@ -1,0 +1,30 @@
+# MySQL 8 (InnoDB) + DB 웹 화면(Adminer)
+#   docker compose up -d
+#   DB 웹 화면 : http://localhost:8082   (서버 mysql / 사용자 root / 비밀번호 root / DB lecture05)
+#   (끝나면) docker compose down
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: lecture05-mysql
+    ports:
+      - "3307:3306"            # 내 컴퓨터에 이미 MySQL 이 있어도 겹치지 않게 3307 로 연다
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=lecture05
+    command: ["--max-connections=200", "--slow-query-log=ON", "--long-query-time=0.2"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-proot"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  adminer:
+    image: adminer
+    container_name: lecture05-adminer
+    ports:
+      - "8082:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=mysql
+    depends_on:
+      mysql:
+        condition: service_healthy
