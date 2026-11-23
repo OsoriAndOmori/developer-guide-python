@@ -1,0 +1,99 @@
+{
+  "realm": "lecture",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 300,
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "일반 사용자"
+      },
+      {
+        "name": "admin",
+        "description": "관리자"
+      },
+      {
+        "name": "service",
+        "description": "서버끼리 호출"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "web-app",
+      "name": "내 웹 앱 (사용자가 로그인하는 클라이언트)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "web-app-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8010/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8010"
+      ]
+    },
+    {
+      "clientId": "batch-job",
+      "name": "배치 (사용자 없이 서버가 직접 토큰을 받는 클라이언트)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "batch-job-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "alice@example.com",
+      "firstName": "Alice",
+      "lastName": "Kim",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "user"
+      ]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "bob@example.com",
+      "firstName": "Bob",
+      "lastName": "Lee",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bob",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "user",
+        "admin"
+      ]
+    },
+    {
+      "username": "service-account-batch-job",
+      "enabled": true,
+      "serviceAccountClientId": "batch-job",
+      "realmRoles": [
+        "service"
+      ]
+    }
+  ]
+}

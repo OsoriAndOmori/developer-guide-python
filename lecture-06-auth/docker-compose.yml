@@ -1,0 +1,18 @@
+# Keycloak (OAuth 2.0 / OpenID Connect 인증 서버) - 개발 모드, realm 은 시작할 때 자동 import
+#   docker compose up -d        (처음 기동에 20~40초)
+#   관리 화면 : http://localhost:8083   (admin / admin)
+#   realm     : lecture   -> http://localhost:8083/realms/lecture
+#   (끝나면) docker compose down
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: lecture06-keycloak
+    command: ["start-dev", "--import-realm"]
+    ports:
+      - "8083:8080"
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+      - KC_HEALTH_ENABLED=true
+    volumes:
+      - ./realm-lecture.json:/opt/keycloak/data/import/realm-lecture.json:ro
