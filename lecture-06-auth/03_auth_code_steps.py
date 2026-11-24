@@ -30,7 +30,7 @@ with httpx.Client() as browser, httpx.Client() as kc:
     print("[0] 브라우저 -> 내 서버  GET /login   (\"로그인\" 버튼을 누름)")
     r = browser.get(f"{ME}/login")
     to_kc = r.headers["location"]
-    print(f"    <- {r.status_code} Location: {to_kc[:95]}...")
+    print(f"    <- {r.status_code} Location: {to_kc}")
 
     print("\n[1] 브라우저 -> 인증 서버  (이동한 로그인 화면에서 ID/PW 입력)")
     r = kc.get(to_kc)
@@ -40,7 +40,7 @@ with httpx.Client() as browser, httpx.Client() as kc:
     r = kc.post(action, data={"username": "alice", "password": "alice"}, headers={"Cookie": cookie})
     callback = r.headers["location"]
 
-    print(f"\n[2] 인증 서버 -> 브라우저  302 Location: {callback[:95]}...")
+    print(f"\n[2] 인증 서버 -> 브라우저  302 Location: {callback}")
 
     print("\n[3] 브라우저 -> 내 서버  GET /callback?code=...&state=...   (이 순간부터 내 서버가 일한다)")
     r = browser.get(callback)
