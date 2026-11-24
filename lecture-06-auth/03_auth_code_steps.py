@@ -48,7 +48,7 @@ with httpx.Client() as browser, httpx.Client() as kc:
     set_cookie = next(c for c in r.headers.get_list("set-cookie") if c.startswith("session="))
 
     print("\n[6 결과] 브라우저가 받은 쿠키")
-    print("    ", set_cookie.split(";")[0][:60] + "...   (+ " + ";".join(set_cookie.split(";")[1:]).strip() + ")")
+    print("    Set-Cookie:", set_cookie)
     my_jwt = browser.cookies["session"]
     print("    쿠키 안의 토큰은 인증 서버 것이 아니라 '우리가 만든' JWT :")
     show_claims(my_jwt)
