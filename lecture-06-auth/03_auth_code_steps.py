@@ -1,39 +1,79 @@
-"""실습 3 : Authorization Code 흐름을 한 단계씩 (블로그의 시퀀스 다이어그램 그대로)
+"""실습 3 : Authorization Code 흐름을 블로그 다이어그램 번호 그대로 (소셜 로그인 방식)
 
-브라우저가 하는 일(로그인 화면 -> 로그인 -> code 가 붙은 redirect)을 httpx 로 흉내내서
-각 단계에서 오가는 HTTP 를 그대로 출력한다. 마지막에 토큰을 뜯어보고, 갱신(refresh)과
-code 재사용 실패까지 확인한다.
+세 주체를 모두 진짜로 돌린다.
+  브라우저 : 이 스크립트 (httpx 로 흉내)
+  내 서버  : 06_my_server.py 를 이 스크립트가 직접 띄운다 (로그는 [내 서버] 로 출력)
+  인증 서버: Keycloak (docker compose up -d)
 
-실행: python 03_auth_code_steps.py
+실행: python 03_auth_code_steps.py       (8010 포트가 비어 있어야 함)
 """
+import importlib
+import re
+import threading
+import time
+
 import httpx
+import uvicorn
 
-from common import OIDC, WEB_APP, login_steps, show_claims
+from common import decode_jwt, show_claims
 
-tokens, code = login_steps("alice", "alice", verbose=True)
+my_server = importlib.import_module("06_my_server")
+server = uvicorn.Server(uvicorn.Config(my_server.app, port=8010, log_level="warning"))
+threading.Thread(target=server.run, daemon=True).start()
+while not server.started:
+    time.sleep(0.1)
 
-print("\n[5] access token (API 호출용, 짧게 산다)")
-show_claims(tokens["access_token"], "iss", "sub", "azp", "exp", "realm_access", "preferred_username", "scope")
-print("\n[5] id token (로그인한 '사람이 누군지' 알려주는 용도 - OpenID Connect 가 추가한 것)")
-show_claims(tokens["id_token"], "iss", "aud", "sub", "preferred_username", "email", "name")
-print(f"\nexpires_in={tokens['expires_in']}초, refresh_expires_in={tokens['refresh_expires_in']}초")
+ME = "http://localhost:8010"
+print("브라우저 = 이 스크립트 / 내 서버 = localhost:8010 / 인증 서버 = Keycloak localhost:8083\n")
 
-def refresh(refresh_token):
-    return httpx.post(f"{OIDC}/token", data={
-        "grant_type": "refresh_token", "refresh_token": refresh_token,
-        "client_id": WEB_APP[0], "client_secret": WEB_APP[1]})
+with httpx.Client() as browser, httpx.Client() as kc:
+    print("[0] 브라우저 -> 내 서버  GET /login   (\"로그인\" 버튼을 누름)")
+    r = browser.get(f"{ME}/login")
+    to_kc = r.headers["location"]
+    print(f"    <- {r.status_code} Location: {to_kc[:95]}...")
 
+    print("\n[1] 브라우저 -> 인증 서버  (이동한 로그인 화면에서 ID/PW 입력)")
+    r = kc.get(to_kc)
+    print(f"    <- {r.status_code} 로그인 화면(HTML)")
+    action = re.search(r'action="([^"]+)"', r.text).group(1).replace("&amp;", "&")
+    cookie = "; ".join(f"{c.name}={c.value}" for c in kc.cookies.jar)   # Secure 쿠키를 http 로 직접 전달 (common.py 참고)
+    r = kc.post(action, data={"username": "alice", "password": "alice"}, headers={"Cookie": cookie})
+    callback = r.headers["location"]
 
-print("\n[갱신] refresh token 으로 새 access token 받기 (사용자 재로그인 없음)")
-r = refresh(tokens["refresh_token"])
-print("   ", r.status_code, "새 access token 앞부분:", r.json()["access_token"][:30], "...")
+    print(f"\n[2] 인증 서버 -> 브라우저  302 Location: {callback[:95]}...")
 
-print("\n[재사용] 이미 쓴 code 로 다시 교환해 보면")
-r = httpx.post(f"{OIDC}/token", data={
-    "grant_type": "authorization_code", "code": code, "redirect_uri": "http://localhost:8010/callback",
-    "client_id": WEB_APP[0], "client_secret": WEB_APP[1]})
-print("   ", r.status_code, r.json())
-print("    -> code 는 한 번만 쓸 수 있다. 주소창에 노출되는 값이라 그렇게 설계했다")
-r = refresh(tokens["refresh_token"])
-print("    재사용 시도 뒤 기존 refresh token 도:", r.status_code, r.json())
-print("    -> 서버는 code 가 탈취됐다고 보고 그 로그인 세션을 폐기한다 (OAuth 권고 동작)")
+    print("\n[3] 브라우저 -> 내 서버  GET /callback?code=...&state=...   (이 순간부터 내 서버가 일한다)")
+    r = browser.get(callback)
+    print(f"    <- {r.status_code} Location: {r.headers['location']}")
+    set_cookie = next(c for c in r.headers.get_list("set-cookie") if c.startswith("session="))
+
+    print("\n[6 결과] 브라우저가 받은 쿠키")
+    print("    ", set_cookie.split(";")[0][:60] + "...   (+ " + ";".join(set_cookie.split(";")[1:]).strip() + ")")
+    my_jwt = browser.cookies["session"]
+    print("    쿠키 안의 토큰은 인증 서버 것이 아니라 '우리가 만든' JWT :")
+    show_claims(my_jwt)
+    print("    브라우저가 가진 쿠키 이름들:", [c.name for c in browser.cookies.jar], " <- Keycloak 토큰은 없다")
+
+    print("\n[이후] 브라우저 -> 내 서버  GET /me   (쿠키만 자동으로 따라감)")
+    r = browser.get(f"{ME}/me")
+    print("    <-", r.status_code, r.json())
+
+    print("\n[위조] 쿠키의 sub 를 다른 사람(1 -> 99)으로 바꿔서 보내면")
+    import base64, json
+    h, p, s = my_jwt.split(".")
+    payload = decode_jwt(my_jwt)[1]
+    payload["sub"] = "99"
+    forged = ".".join([h, base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b"=").decode(), s])
+    r = httpx.get(f"{ME}/me", headers={"Authorization": f"Bearer {forged}"})
+    print("    <-", r.status_code, r.json())
+
+    print("\n[재로그인] 같은 사람이 다시 로그인하면 회원가입은 일어나지 않는다 (로그 참고)")
+    to_kc = browser.get(f"{ME}/login").headers["location"]
+    r = kc.get(to_kc, headers={"Cookie": cookie})                     # 인증 서버에 로그인 세션이 남아 있어 화면 없이 바로 code 가 온다
+    if r.status_code == 302:
+        browser.get(r.headers["location"])
+    else:
+        action = re.search(r'action="([^"]+)"', r.text).group(1).replace("&amp;", "&")
+        cookie = "; ".join(f"{c.name}={c.value}" for c in kc.cookies.jar)
+        r = kc.post(action, data={"username": "alice", "password": "alice"}, headers={"Cookie": cookie})
+        browser.get(r.headers["location"])

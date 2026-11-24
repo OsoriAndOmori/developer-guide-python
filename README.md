@@ -5,4 +5,4 @@
 - `lecture-03-basics/` : 3강 기초 데모 (프로세스/스레드, 블로킹, 이벤트루프, FastAPI)
 - `lecture-04-python-servers/` : 4강 서버 만들기 데모 (WSGI, ASGI, FastAPI + LocalStack boto3)
 - `lecture-05-db/` : 5강 DB 실습 (인덱스, 격리와 락, 데드락, 커넥션 풀, 트랜잭션, MySQL 8 + Adminer)
-- `lecture-06-auth/` : 6강 인증 실습 (OAuth 2.0 / OIDC, Authorization Code 단계별, JWT, API 토큰 검증, Keycloak)
+- `lecture-06-auth/` : 6강 인증 실습 (OAuth 2.0 / OIDC 소셜 로그인 흐름, 자체 JWT 발급, 토큰 검증, Keycloak)
